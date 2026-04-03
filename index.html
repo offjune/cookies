@@ -36,13 +36,13 @@
             </div>
         </div>
 
-        <!-- Indicador de Carregamento/Auth -->
-        <div id="loading-state" class="text-center py-4 text-gray-500 font-medium">
-            <i class="fas fa-spinner fa-spin mr-2"></i> Conectando ao banco de dados e sincronizando...
+        <!-- Indicador de Carregamento -->
+        <div id="loading-state" class="text-center py-4 text-gray-500 font-medium hidden">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Carregando dados...
         </div>
 
-        <!-- Dashboard Content (Oculto até carregar os dados) -->
-        <div id="dashboard-content" class="hidden space-y-6">
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" class="space-y-6">
             <!-- KPIs -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="card border-l-4 border-blue-500">
@@ -143,7 +143,6 @@
                     <button type="button" onclick="closeModal('modal-venda')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
                         <span id="btn-venda-text">Salvar Venda</span>
-                        <i id="btn-venda-spin" class="fas fa-spinner fa-spin ml-2 hidden"></i>
                     </button>
                 </div>
             </form>
@@ -181,33 +180,14 @@
                     <button type="button" onclick="closeModal('modal-gasto')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
                         <span id="btn-gasto-text">Salvar Gasto</span>
-                        <i id="btn-gasto-spin" class="fas fa-spinner fa-spin ml-2 hidden"></i>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Lógica da Aplicação + Firebase -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Configuração de ambiente fornecida
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        let app, auth, db;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Erro ao inicializar Firebase", e);
-        }
-
-        let currentUser = null;
+    <!-- Lógica da Aplicação usando LocalStorage -->
+    <script>
         let vendasGlobais = [];
         let gastosGlobais = [];
         let chartEvolucao, chartProdutos, chartGastos;
@@ -219,124 +199,76 @@
         document.getElementById('venda-data').valueAsDate = new Date();
         document.getElementById('gasto-data').valueAsDate = new Date();
 
-        // 1. Inicializar Autenticação (REGRA 3: Auth Antes de Queries)
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Erro na autenticação:", error);
-                document.getElementById('loading-state').innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Erro ao conectar. Tente recarregar a página.</span>`;
+        // 1. Carregar Dados do LocalStorage
+        function carregarDados() {
+            const vendasSalvas = localStorage.getItem('cookies_vendas');
+            const gastosSalvos = localStorage.getItem('cookies_gastos');
+
+            if (vendasSalvas) {
+                vendasGlobais = JSON.parse(vendasSalvas);
             }
+            if (gastosSalvos) {
+                gastosGlobais = JSON.parse(gastosSalvos);
+            }
+
+            atualizarDashboard();
         }
 
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                setupListeners();
-            }
-        });
-
-        initAuth();
-
-        // 2. Escutar Dados em Tempo Real (REGRAS 1 e 2: Caminhos estritos e Queries Simples)
-        function setupListeners() {
-            if (!currentUser) return;
-
-            const vendasRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'vendas');
-            const gastosRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'gastos');
-
-            let carregouVendas = false;
-            let carregouGastos = false;
-
-            const checkLoad = () => {
-                if (carregouVendas && carregouGastos) {
-                    document.getElementById('loading-state').classList.add('hidden');
-                    document.getElementById('dashboard-content').classList.remove('hidden');
-                    atualizarDashboard();
-                }
-            };
-
-            onSnapshot(vendasRef, (snapshot) => {
-                vendasGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                carregouVendas = true;
-                checkLoad();
-                if(carregouGastos) atualizarDashboard(); // Atualiza se já tinha carregado tudo antes
-            }, (error) => console.error("Erro ao ler vendas:", error));
-
-            onSnapshot(gastosRef, (snapshot) => {
-                gastosGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                carregouGastos = true;
-                checkLoad();
-                if(carregouVendas) atualizarDashboard();
-            }, (error) => console.error("Erro ao ler gastos:", error));
-        }
-
-        // 3. Funções de Adicionar Dados
-        document.getElementById('form-venda').addEventListener('submit', async (e) => {
+        // 2. Funções de Adicionar e Salvar Dados
+        document.getElementById('form-venda').addEventListener('submit', (e) => {
             e.preventDefault();
-            if(!currentUser) return;
             
-            const btnText = document.getElementById('btn-venda-text');
-            const btnSpin = document.getElementById('btn-venda-spin');
-            btnText.textContent = "Salvando...";
-            btnSpin.classList.remove('hidden');
-
             const data = document.getElementById('venda-data').value;
             const produto = document.getElementById('venda-produto').value;
             const qtd = Number(document.getElementById('venda-qtd').value);
             const preco = Number(document.getElementById('venda-preco').value);
             const total = qtd * preco;
 
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'vendas'), {
-                    data, produto, quantidade: qtd, precoUnitario: preco, total, criadoEm: serverTimestamp()
-                });
-                window.closeModal('modal-venda');
-                document.getElementById('form-venda').reset();
-                document.getElementById('venda-data').valueAsDate = new Date();
-            } catch(e) {
-                console.error(e);
-            } finally {
-                btnText.textContent = "Salvar Venda";
-                btnSpin.classList.add('hidden');
-            }
+            const novaVenda = {
+                id: Date.now().toString(),
+                data: data,
+                produto: produto,
+                quantidade: qtd,
+                precoUnitario: preco,
+                total: total
+            };
+
+            vendasGlobais.push(novaVenda);
+            localStorage.setItem('cookies_vendas', JSON.stringify(vendasGlobais)); // Salva no navegador
+            
+            atualizarDashboard();
+            closeModal('modal-venda');
+            
+            document.getElementById('form-venda').reset();
+            document.getElementById('venda-data').valueAsDate = new Date();
         });
 
-        document.getElementById('form-gasto').addEventListener('submit', async (e) => {
+        document.getElementById('form-gasto').addEventListener('submit', (e) => {
             e.preventDefault();
-            if(!currentUser) return;
             
-            const btnText = document.getElementById('btn-gasto-text');
-            const btnSpin = document.getElementById('btn-gasto-spin');
-            btnText.textContent = "Salvando...";
-            btnSpin.classList.remove('hidden');
-
             const data = document.getElementById('gasto-data').value;
             const categoria = document.getElementById('gasto-categoria').value;
             const valor = Number(document.getElementById('gasto-valor').value);
 
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'gastos'), {
-                    data, categoria, valor, criadoEm: serverTimestamp()
-                });
-                window.closeModal('modal-gasto');
-                document.getElementById('form-gasto').reset();
-                document.getElementById('gasto-data').valueAsDate = new Date();
-            } catch(e) {
-                console.error(e);
-            } finally {
-                btnText.textContent = "Salvar Gasto";
-                btnSpin.classList.add('hidden');
-            }
+            const novoGasto = {
+                id: Date.now().toString(),
+                data: data,
+                categoria: categoria,
+                valor: valor
+            };
+
+            gastosGlobais.push(novoGasto);
+            localStorage.setItem('cookies_gastos', JSON.stringify(gastosGlobais)); // Salva no navegador
+            
+            atualizarDashboard();
+            closeModal('modal-gasto');
+            
+            document.getElementById('form-gasto').reset();
+            document.getElementById('gasto-data').valueAsDate = new Date();
         });
 
-        // 4. Lógica de Atualização Visual (Dashboard e Gráficos)
+        // 3. Lógica de Atualização Visual (Dashboard e Gráficos)
         function atualizarDashboard() {
-            // Processamento em memória (Regra 2)
             const faturamentoTotal = vendasGlobais.reduce((acc, v) => acc + (v.total || 0), 0);
             const gastosTotais = gastosGlobais.reduce((acc, g) => acc + (g.valor || 0), 0);
             const lucro = faturamentoTotal - gastosTotais;
@@ -485,6 +417,9 @@
         // Expor funções de modal para o escopo global (para o onClick do HTML funcionar)
         window.openModal = function(id) { document.getElementById(id).classList.add('active'); }
         window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); }
+
+        // Inicia carregando os dados salvos
+        carregarDados();
 
     </script>
 </body>
