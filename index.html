@@ -1,272 +1,491 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Planner Semanal</title>
+    <title>Dashboard Analítico Interativo - Cookies</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #FDFBF8; /* Um tom de creme bem claro */
-            color: #5D5550; /* Marrom aconchegante */
-        }
-        .cozy-title {
-            font-family: 'Caveat', cursive;
-        }
-        /* Estilo para a barra de rolagem */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #F0EBE3; /* Fundo da barra de rolagem */
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #D4C8BE; /* Cor do "polegar" da barra de rolagem */
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #BFB2A7;
-        }
-        .editable-area {
-            transition: all 0.2s ease-in-out;
-        }
-        .editable-area:focus {
-            outline: none;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            border-color: #A9998D; /* Borda um pouco mais escura ao focar */
-            transform: scale(1.01);
-        }
-        /* Placeholder customizado para divs editáveis */
-        [contenteditable="true"]:empty:before {
-            content: attr(placeholder);
-            pointer-events: none;
-            display: block; /* Para o placeholder funcionar */
-            color: #A9998D;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem; }
+        .kpi-title { font-size: 0.875rem; color: #6b7280; text-transform: uppercase; font-weight: 600; }
+        .kpi-value { font-size: 1.875rem; font-weight: 700; color: #111827; margin-top: 0.5rem; }
+        .modal { display: none; background-color: rgba(0, 0, 0, 0.5); }
+        .modal.active { display: flex; }
     </style>
 </head>
-<body class="antialiased">
-    <div id="app" class="container mx-auto p-4 sm:p-6 md:p-8">
-        <header class="text-center mb-8">
-            <h1 class="cozy-title text-5xl md:text-7xl text-[#6B5B4B]">Meu Planner Semanal</h1>
-            <p class="text-lg text-stone-500 mt-2">Organize seus dias, metas e anotações com um toque aconchegante.</p>
-        </header>
+<body class="p-6 relative min-h-screen">
 
-        <main>
-            <!-- Quadro da Rotina Semanal -->
-            <div id="routine-board" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-12">
-                <!-- Os dias da semana serão gerados pelo JavaScript -->
-            </div>
-
-            <!-- Seções Adicionais -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h2 class="cozy-title text-4xl text-[#6B5B4B] mb-4 text-center md:text-left">Anotações Gerais</h2>
-                    <div id="notes-area" contenteditable="true" placeholder="Escreva suas anotações aqui..." class="editable-area w-full h-72 bg-stone-100 p-4 rounded-lg shadow-inner border border-stone-200 focus:ring-2 focus:ring-amber-200 overflow-y-auto"></div>
-                </div>
-                <div>
-                    <h2 class="cozy-title text-4xl text-[#6B5B4B] mb-4 text-center md:text-left">Metas da Semana</h2>
-                    <div id="goals-area" contenteditable="true" placeholder="Defina suas metas para a semana..." class="editable-area w-full h-72 bg-stone-100 p-4 rounded-lg shadow-inner border border-stone-200 focus:ring-2 focus:ring-amber-200 overflow-y-auto"></div>
-                </div>
-            </div>
-        </main>
+    <div class="max-w-7xl mx-auto space-y-6">
         
-        <footer class="text-center mt-12">
-            <button id="clear-button" class="bg-amber-200 hover:bg-amber-300 text-stone-700 font-semibold py-2 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                Limpar Planner
-            </button>
-        </footer>
-    </div>
-    
-    <!-- Modal de Confirmação -->
-    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-[#FDFBF8] p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center">
-            <h2 class="text-2xl font-bold text-stone-700 mb-4">Tem certeza?</h2>
-            <p class="text-stone-600 mb-6">Todo o seu planner será apagado. Esta ação não pode ser desfeita.</p>
-            <div class="flex justify-center gap-4">
-                <button id="cancel-clear" class="bg-stone-200 hover:bg-stone-300 text-stone-700 font-semibold py-2 px-6 rounded-lg transition">Cancelar</button>
-                <button id="confirm-clear" class="bg-red-300 hover:bg-red-400 text-white font-semibold py-2 px-6 rounded-lg transition">Apagar</button>
+        <!-- Header e Botões de Ação -->
+        <div class="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-chart-pie text-blue-600 text-3xl"></i>
+                <h1 class="text-2xl font-bold text-gray-800">Meu Negócio de Cookies</h1>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="openModal('modal-gasto')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold hover:bg-red-100 transition shadow-sm border border-red-200">
+                    <i class="fas fa-minus-circle mr-2"></i>Registrar Gasto
+                </button>
+                <button onclick="openModal('modal-venda')" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm">
+                    <i class="fas fa-plus-circle mr-2"></i>Registrar Venda
+                </button>
+            </div>
+        </div>
+
+        <!-- Indicador de Carregamento/Auth -->
+        <div id="loading-state" class="text-center py-4 text-gray-500 font-medium">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Conectando ao banco de dados e sincronizando...
+        </div>
+
+        <!-- Dashboard Content (Oculto até carregar os dados) -->
+        <div id="dashboard-content" class="hidden space-y-6">
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="card border-l-4 border-blue-500">
+                    <div class="kpi-title">Faturamento Total</div>
+                    <div class="kpi-value text-blue-700" id="kpi-faturamento">R$ 0,00</div>
+                </div>
+                <div class="card border-l-4 border-red-500">
+                    <div class="kpi-title">Gastos Totais</div>
+                    <div class="kpi-value text-red-600" id="kpi-gastos">R$ 0,00</div>
+                </div>
+                <div class="card border-l-4 border-green-500">
+                    <div class="kpi-title">Lucro Líquido</div>
+                    <div class="kpi-value text-green-600" id="kpi-lucro">R$ 0,00</div>
+                </div>
+                <div class="card border-l-4 border-purple-500">
+                    <div class="kpi-title">Margem de Lucro</div>
+                    <div class="kpi-value text-purple-600" id="kpi-margem">0%</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Evolução (Faturamento vs Gastos)</h2>
+                    <canvas id="evolucaoChart" height="250"></canvas>
+                </div>
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Faturamento por Produto</h2>
+                    <div class="flex justify-center h-[250px]">
+                        <canvas id="produtosChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Composição dos Gastos</h2>
+                    <canvas id="gastosChart" height="250"></canvas>
+                </div>
+                <div class="card overflow-hidden">
+                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Últimos Registros de Vendas</h2>
+                    <div class="overflow-x-auto h-[250px] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-vendas-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                        <div id="table-empty" class="text-center py-4 text-gray-500 hidden">
+                            Nenhuma venda registrada ainda.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal Nova Venda -->
+    <div id="modal-venda" class="fixed inset-0 z-50 modal items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-blue-50">
+                <h3 class="text-lg font-bold text-blue-800">Registrar Nova Venda</h3>
+                <button onclick="closeModal('modal-venda')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="form-venda" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                    <input type="date" id="venda-data" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Produto</label>
+                    <select id="venda-produto" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500">
+                        <option value="Cookie Tradicional">Cookie Tradicional</option>
+                        <option value="Cookie Chocolate Duplo">Cookie Chocolate Duplo</option>
+                        <option value="Cookie Red Velvet">Cookie Red Velvet</option>
+                        <option value="Cookie Nutella">Cookie Nutella</option>
+                        <option value="Caixa Degustação">Caixa Degustação</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+                        <input type="number" id="venda-qtd" min="1" value="1" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Preço Unitário (R$)</label>
+                        <input type="number" step="0.01" id="venda-preco" required placeholder="8.50" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('modal-venda')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+                        <span id="btn-venda-text">Salvar Venda</span>
+                        <i id="btn-venda-spin" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
+    <!-- Modal Novo Gasto -->
+    <div id="modal-gasto" class="fixed inset-0 z-50 modal items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-red-50">
+                <h3 class="text-lg font-bold text-red-800">Registrar Gasto</h3>
+                <button onclick="closeModal('modal-gasto')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <form id="form-gasto" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                    <input type="date" id="gasto-data" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                    <select id="gasto-categoria" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                        <option value="Ingredientes">Ingredientes</option>
+                        <option value="Embalagens">Embalagens</option>
+                        <option value="Frete/Entregas">Frete / Entregas</option>
+                        <option value="Marketing">Marketing / Anúncios</option>
+                        <option value="Gás/Energia">Gás / Energia</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
+                    <input type="number" step="0.01" id="gasto-valor" required placeholder="50.00" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
+                </div>
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('modal-gasto')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
+                        <span id="btn-gasto-text">Salvar Gasto</span>
+                        <i id="btn-gasto-spin" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lógica da Aplicação + Firebase -->
     <script type="module">
-        // Importações do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Configuração e Variáveis Globais ---
+        // Configuração de ambiente fornecida
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-planner-app';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         let app, auth, db;
-        let userId = null;
-        let routineDocRef = null;
-        let notesDocRef = null;
-        
-        const daysOfWeek = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-        const dayPrefixes = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
-
-        const board = document.getElementById('routine-board');
-        const notesArea = document.getElementById('notes-area');
-        const goalsArea = document.getElementById('goals-area');
-        const clearButton = document.getElementById('clear-button');
-        const modal = document.getElementById('confirmation-modal');
-        const confirmClearBtn = document.getElementById('confirm-clear');
-        const cancelClearBtn = document.getElementById('cancel-clear');
-
-        // --- Funções Principais ---
-
-        function initializeAppAndListeners() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                setupAuthListener();
-            } catch (error) {
-                console.error("Erro ao inicializar o Firebase:", error);
-                board.innerHTML = `<p class="text-center col-span-full text-red-500">Não foi possível conectar ao serviço de dados. Tente recarregar a página.</p>`;
-            }
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase", e);
         }
-        
-        function setupAuthListener() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    routineDocRef = doc(db, `artifacts/${appId}/users/${userId}/routine`);
-                    notesDocRef = doc(db, `artifacts/${appId}/users/${userId}/notes`);
-                    loadData();
+
+        let currentUser = null;
+        let vendasGlobais = [];
+        let gastosGlobais = [];
+        let chartEvolucao, chartProdutos, chartGastos;
+
+        // Utilitário de Moeda Brasileira
+        const formatBRL = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+
+        // Preencher data de hoje nos forms
+        document.getElementById('venda-data').valueAsDate = new Date();
+        document.getElementById('gasto-data').valueAsDate = new Date();
+
+        // 1. Inicializar Autenticação (REGRA 3: Auth Antes de Queries)
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Erro na autenticação:", error);
-                    }
+                    await signInAnonymously(auth);
                 }
-            });
-        }
-        
-        // Gera o quadro na tela
-        function createBoard() {
-            daysOfWeek.forEach((day, index) => {
-                const dayPrefix = dayPrefixes[index];
-                const dayColumn = document.createElement('div');
-                dayColumn.className = 'flex flex-col gap-3 bg-stone-100 p-3 rounded-lg shadow-sm';
-                dayColumn.innerHTML = `<h2 class="font-bold text-center text-lg text-stone-600 pb-2 border-b-2 border-stone-200">${day}</h2>`;
-
-                // Horários
-                for (let i = 7; i <= 21; i++) {
-                    const timeSlotWrapper = document.createElement('div');
-                    timeSlotWrapper.className = 'flex items-center gap-2';
-
-                    const timeLabel = document.createElement('span');
-                    timeLabel.className = 'text-xs text-stone-500 font-semibold';
-                    timeLabel.textContent = `${i.toString().padStart(2, '0')}:00`;
-
-                    const slot = document.createElement('div');
-                    slot.id = `${dayPrefix}-${i}`;
-                    slot.contentEditable = true;
-                    slot.className = 'editable-area flex-grow bg-white p-1.5 rounded-md border border-stone-200 text-sm min-h-[30px]';
-                    slot.setAttribute('placeholder', '...');
-                    slot.addEventListener('blur', () => saveContent(routineDocRef, slot.id, slot.innerHTML));
-                    
-                    timeSlotWrapper.appendChild(timeLabel);
-                    timeSlotWrapper.appendChild(slot);
-                    dayColumn.appendChild(timeSlotWrapper);
-                }
-
-                // Observações
-                const obsTitle = document.createElement('h3');
-                obsTitle.className = "font-semibold text-center text-md text-stone-600 pt-2 border-t-2 border-stone-200 mt-2";
-                obsTitle.textContent = "Obs.";
-                
-                const obsArea = document.createElement('div');
-                obsArea.id = `obs-${dayPrefix}`;
-                obsArea.contentEditable = true;
-                obsArea.className = 'editable-area bg-white p-2 rounded-md border border-stone-200 text-sm min-h-[60px]';
-                obsArea.setAttribute('placeholder', 'Observações...');
-                obsArea.addEventListener('blur', () => saveContent(routineDocRef, obsArea.id, obsArea.innerHTML));
-
-                dayColumn.appendChild(obsTitle);
-                dayColumn.appendChild(obsArea);
-                board.appendChild(dayColumn);
-            });
-        }
-        
-        // Carrega todos os dados do Firestore
-        async function loadData() {
-            if (routineDocRef) {
-                try {
-                    const docSnap = await getDoc(routineDocRef);
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        Object.keys(data).forEach(id => {
-                            const element = document.getElementById(id);
-                            if (element) element.innerHTML = data[id];
-                        });
-                    }
-                } catch (error) { console.error("Erro ao carregar rotina:", error); }
-            }
-            if (notesDocRef) {
-                 try {
-                    const docSnap = await getDoc(notesDocRef);
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        if(data.notes) notesArea.innerHTML = data.notes;
-                        if(data.goals) goalsArea.innerHTML = data.goals;
-                    }
-                } catch (error) { console.error("Erro ao carregar anotações:", error); }
-            }
-        }
-        
-        // Salva o conteúdo em um documento específico
-        async function saveContent(docRef, id, content) {
-            if (!docRef) return;
-            try {
-                await setDoc(docRef, { [id]: content }, { merge: true });
             } catch (error) {
-                console.error(`Erro ao salvar conteúdo:`, error);
+                console.error("Erro na autenticação:", error);
+                document.getElementById('loading-state').innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Erro ao conectar. Tente recarregar a página.</span>`;
             }
         }
 
-        // Limpa o planner na UI e no Firestore
-        async function clearPlanner() {
-            document.querySelectorAll('.editable-area').forEach(el => el.innerHTML = '');
-            
-            if (routineDocRef) await deleteDoc(routineDocRef).catch(e => console.error(e));
-            if (notesDocRef) await deleteDoc(notesDocRef).catch(e => console.error(e));
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                setupListeners();
+            }
+        });
 
-            console.log("Planner limpo com sucesso.");
-            closeModal();
+        initAuth();
+
+        // 2. Escutar Dados em Tempo Real (REGRAS 1 e 2: Caminhos estritos e Queries Simples)
+        function setupListeners() {
+            if (!currentUser) return;
+
+            const vendasRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'vendas');
+            const gastosRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'gastos');
+
+            let carregouVendas = false;
+            let carregouGastos = false;
+
+            const checkLoad = () => {
+                if (carregouVendas && carregouGastos) {
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('dashboard-content').classList.remove('hidden');
+                    atualizarDashboard();
+                }
+            };
+
+            onSnapshot(vendasRef, (snapshot) => {
+                vendasGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                carregouVendas = true;
+                checkLoad();
+                if(carregouGastos) atualizarDashboard(); // Atualiza se já tinha carregado tudo antes
+            }, (error) => console.error("Erro ao ler vendas:", error));
+
+            onSnapshot(gastosRef, (snapshot) => {
+                gastosGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                carregouGastos = true;
+                checkLoad();
+                if(carregouVendas) atualizarDashboard();
+            }, (error) => console.error("Erro ao ler gastos:", error));
         }
 
-        // --- Funções do Modal ---
-        function showModal() { modal.classList.remove('hidden'); }
-        function closeModal() { modal.classList.add('hidden'); }
+        // 3. Funções de Adicionar Dados
+        document.getElementById('form-venda').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(!currentUser) return;
+            
+            const btnText = document.getElementById('btn-venda-text');
+            const btnSpin = document.getElementById('btn-venda-spin');
+            btnText.textContent = "Salvando...";
+            btnSpin.classList.remove('hidden');
 
-        // --- Listeners de Eventos Globais ---
-        clearButton.addEventListener('click', showModal);
-        cancelClearBtn.addEventListener('click', closeModal);
-        confirmClearBtn.addEventListener('click', clearPlanner);
-        notesArea.addEventListener('blur', () => saveContent(notesDocRef, 'notes', notesArea.innerHTML));
-        goalsArea.addEventListener('blur', () => saveContent(notesDocRef, 'goals', goalsArea.innerHTML));
+            const data = document.getElementById('venda-data').value;
+            const produto = document.getElementById('venda-produto').value;
+            const qtd = Number(document.getElementById('venda-qtd').value);
+            const preco = Number(document.getElementById('venda-preco').value);
+            const total = qtd * preco;
 
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'vendas'), {
+                    data, produto, quantidade: qtd, precoUnitario: preco, total, criadoEm: serverTimestamp()
+                });
+                window.closeModal('modal-venda');
+                document.getElementById('form-venda').reset();
+                document.getElementById('venda-data').valueAsDate = new Date();
+            } catch(e) {
+                console.error(e);
+            } finally {
+                btnText.textContent = "Salvar Venda";
+                btnSpin.classList.add('hidden');
+            }
+        });
 
-        // --- Inicialização ---
-        createBoard();
-        initializeAppAndListeners();
+        document.getElementById('form-gasto').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(!currentUser) return;
+            
+            const btnText = document.getElementById('btn-gasto-text');
+            const btnSpin = document.getElementById('btn-gasto-spin');
+            btnText.textContent = "Salvando...";
+            btnSpin.classList.remove('hidden');
+
+            const data = document.getElementById('gasto-data').value;
+            const categoria = document.getElementById('gasto-categoria').value;
+            const valor = Number(document.getElementById('gasto-valor').value);
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'users', currentUser.uid, 'gastos'), {
+                    data, categoria, valor, criadoEm: serverTimestamp()
+                });
+                window.closeModal('modal-gasto');
+                document.getElementById('form-gasto').reset();
+                document.getElementById('gasto-data').valueAsDate = new Date();
+            } catch(e) {
+                console.error(e);
+            } finally {
+                btnText.textContent = "Salvar Gasto";
+                btnSpin.classList.add('hidden');
+            }
+        });
+
+        // 4. Lógica de Atualização Visual (Dashboard e Gráficos)
+        function atualizarDashboard() {
+            // Processamento em memória (Regra 2)
+            const faturamentoTotal = vendasGlobais.reduce((acc, v) => acc + (v.total || 0), 0);
+            const gastosTotais = gastosGlobais.reduce((acc, g) => acc + (g.valor || 0), 0);
+            const lucro = faturamentoTotal - gastosTotais;
+            const margem = faturamentoTotal > 0 ? (lucro / faturamentoTotal) * 100 : 0;
+
+            // Atualiza Textos
+            document.getElementById('kpi-faturamento').textContent = formatBRL(faturamentoTotal);
+            document.getElementById('kpi-gastos').textContent = formatBRL(gastosTotais);
+            document.getElementById('kpi-lucro').textContent = formatBRL(lucro);
+            document.getElementById('kpi-margem').textContent = margem.toFixed(1).replace('.', ',') + '%';
+
+            // Preparar dados para gráficos
+            renderizarGraficoEvolucao();
+            renderizarGraficoProdutos();
+            renderizarGraficoGastos();
+            renderizarTabelaVendas();
+        }
+
+        function agruparPorData() {
+            const datasMap = {};
+            vendasGlobais.forEach(v => {
+                if(!datasMap[v.data]) datasMap[v.data] = { faturamento: 0, gastos: 0 };
+                datasMap[v.data].faturamento += v.total;
+            });
+            gastosGlobais.forEach(g => {
+                if(!datasMap[g.data]) datasMap[g.data] = { faturamento: 0, gastos: 0 };
+                datasMap[g.data].gastos += g.valor;
+            });
+            
+            // Ordenar por data
+            const datasOrdenadas = Object.keys(datasMap).sort();
+            // Pegar as últimas 7 para não poluir
+            const ultimas = datasOrdenadas.slice(-7);
+            
+            return {
+                labels: ultimas.map(d => d.split('-').reverse().slice(0,2).join('/')), // Formato DD/MM
+                faturamentos: ultimas.map(d => datasMap[d].faturamento),
+                gastos: ultimas.map(d => datasMap[d].gastos)
+            };
+        }
+
+        function renderizarGraficoEvolucao() {
+            const dados = agruparPorData();
+            const ctx = document.getElementById('evolucaoChart').getContext('2d');
+            
+            if(chartEvolucao) chartEvolucao.destroy();
+            
+            chartEvolucao = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dados.labels.length ? dados.labels : ['Sem dados'],
+                    datasets: [
+                        { label: 'Faturamento', data: dados.faturamentos.length ? dados.faturamentos : [0], backgroundColor: '#3B82F6', borderRadius: 4 },
+                        { label: 'Gastos', data: dados.gastos.length ? dados.gastos : [0], backgroundColor: '#EF4444', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { tooltip: { callbacks: { label: (ctx) => formatBRL(ctx.raw) } } }
+                }
+            });
+        }
+
+        function renderizarGraficoProdutos() {
+            const prodMap = {};
+            vendasGlobais.forEach(v => {
+                prodMap[v.produto] = (prodMap[v.produto] || 0) + v.total;
+            });
+
+            const labels = Object.keys(prodMap);
+            const dados = Object.values(prodMap);
+
+            const ctx = document.getElementById('produtosChart').getContext('2d');
+            if(chartProdutos) chartProdutos.destroy();
+
+            chartProdutos = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['Nenhuma Venda'],
+                    datasets: [{
+                        data: dados.length ? dados : [1],
+                        backgroundColor: labels.length ? ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'] : ['#e5e7eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right' } } }
+            });
+        }
+
+        function renderizarGraficoGastos() {
+            const catMap = {};
+            gastosGlobais.forEach(g => {
+                catMap[g.categoria] = (catMap[g.categoria] || 0) + g.valor;
+            });
+
+            const labels = Object.keys(catMap);
+            const dados = Object.values(catMap);
+
+            const ctx = document.getElementById('gastosChart').getContext('2d');
+            if(chartGastos) chartGastos.destroy();
+
+            chartGastos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['Sem gastos'],
+                    datasets: [{
+                        label: 'Gasto em R$',
+                        data: dados.length ? dados : [0],
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderizarTabelaVendas() {
+            const tbody = document.getElementById('table-vendas-body');
+            const emptyState = document.getElementById('table-empty');
+            tbody.innerHTML = '';
+
+            if (vendasGlobais.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            // Ordenar por data decrescente
+            const vendasOrdenadas = [...vendasGlobais].sort((a, b) => new Date(b.data) - new Date(a.data));
+            
+            vendasOrdenadas.slice(0, 8).forEach(venda => {
+                const tr = document.createElement('tr');
+                const dataFormatada = venda.data.split('-').reverse().join('/');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${dataFormatada}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${venda.produto} <span class="text-xs text-gray-400">(${venda.quantidade}x)</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">${formatBRL(venda.total)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Expor funções de modal para o escopo global (para o onClick do HTML funcionar)
+        window.openModal = function(id) { document.getElementById(id).classList.add('active'); }
+        window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); }
 
     </script>
 </body>
 </html>
-
