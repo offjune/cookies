@@ -67,11 +67,13 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="card">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">Evolução (Faturamento vs Gastos)</h2>
-                    <canvas id="evolucaoChart" height="250"></canvas>
+                    <div class="relative h-[250px] w-full">
+                        <canvas id="evolucaoChart"></canvas>
+                    </div>
                 </div>
                 <div class="card">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">Faturamento por Produto</h2>
-                    <div class="flex justify-center h-[250px]">
+                    <div class="relative flex justify-center h-[250px] w-full">
                         <canvas id="produtosChart"></canvas>
                     </div>
                 </div>
@@ -80,7 +82,9 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="card">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">Composição dos Gastos</h2>
-                    <canvas id="gastosChart" height="250"></canvas>
+                    <div class="relative h-[250px] w-full">
+                        <canvas id="gastosChart"></canvas>
+                    </div>
                 </div>
                 <div class="card overflow-hidden">
                     <h2 class="text-lg font-semibold text-gray-700 mb-4">Últimos Registros de Vendas</h2>
@@ -121,11 +125,10 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Produto</label>
                     <select id="venda-produto" required class="w-full border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500">
-                        <option value="Cookie Tradicional">Cookie Tradicional</option>
-                        <option value="Cookie Chocolate Duplo">Cookie Chocolate Duplo</option>
-                        <option value="Cookie Red Velvet">Cookie Red Velvet</option>
-                        <option value="Cookie Nutella">Cookie Nutella</option>
-                        <option value="Caixa Degustação">Caixa Degustação</option>
+                        <option value="Avelã">Avelã</option>
+                        <option value="Brigadeiro">Brigadeiro</option>
+                        <option value="Ganache Branco">Ganache Branco</option>
+                        <option value="Pistache">Pistache</option>
                         <option value="Outro">Outro</option>
                     </select>
                 </div>
