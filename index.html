@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico Interativo - Cookies</title>
+    <title>Cookies do June</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -86,23 +86,50 @@
                         <canvas id="gastosChart"></canvas>
                     </div>
                 </div>
-                <div class="card overflow-hidden">
-                    <h2 class="text-lg font-semibold text-gray-700 mb-4">Últimos Registros de Vendas</h2>
-                    <div class="overflow-x-auto h-[250px] overflow-y-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50 sticky top-0">
+                
+                <!-- Histórico (Vendas / Gastos) Editável -->
+                <div class="card overflow-hidden flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-700">Histórico de Lançamentos</h2>
+                        <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                            <button id="tab-vendas" onclick="switchTab('vendas')" class="px-3 py-1 text-sm font-medium rounded-md bg-white shadow-sm text-blue-700">Vendas</button>
+                            <button id="tab-gastos" onclick="switchTab('gastos')" class="px-3 py-1 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700">Gastos</button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto flex-1 overflow-y-auto" style="max-height: 250px;">
+                        <!-- Tabela Vendas -->
+                        <table id="table-vendas" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0 z-10">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="table-vendas-body" class="bg-white divide-y divide-gray-200">
                                 <!-- Preenchido via JS -->
                             </tbody>
                         </table>
-                        <div id="table-empty" class="text-center py-4 text-gray-500 hidden">
-                            Nenhuma venda registrada ainda.
+                        
+                        <!-- Tabela Gastos -->
+                        <table id="table-gastos" class="min-w-full divide-y divide-gray-200 hidden">
+                            <thead class="bg-gray-50 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-gastos-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+
+                        <div id="table-empty" class="text-center py-8 text-gray-500 hidden">
+                            Nenhum registro encontrado.
                         </div>
                     </div>
                 </div>
@@ -110,12 +137,12 @@
         </div>
     </div>
 
-    <!-- Modal Nova Venda -->
+    <!-- Modal Nova/Editar Venda -->
     <div id="modal-venda" class="fixed inset-0 z-50 modal items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-blue-50">
-                <h3 class="text-lg font-bold text-blue-800">Registrar Nova Venda</h3>
-                <button onclick="closeModal('modal-venda')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+                <h3 id="modal-venda-title" class="text-lg font-bold text-blue-800">Registrar Nova Venda</h3>
+                <button onclick="fecharModalVenda()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <form id="form-venda" class="p-6 space-y-4">
                 <div>
@@ -143,7 +170,7 @@
                     </div>
                 </div>
                 <div class="pt-4 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal('modal-venda')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="button" onclick="fecharModalVenda()" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
                         <span id="btn-venda-text">Salvar Venda</span>
                     </button>
@@ -152,12 +179,12 @@
         </div>
     </div>
 
-    <!-- Modal Novo Gasto -->
+    <!-- Modal Novo/Editar Gasto -->
     <div id="modal-gasto" class="fixed inset-0 z-50 modal items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
             <div class="px-6 py-4 border-b flex justify-between items-center bg-red-50">
-                <h3 class="text-lg font-bold text-red-800">Registrar Gasto</h3>
-                <button onclick="closeModal('modal-gasto')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+                <h3 id="modal-gasto-title" class="text-lg font-bold text-red-800">Registrar Gasto</h3>
+                <button onclick="fecharModalGasto()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
             </div>
             <form id="form-gasto" class="p-6 space-y-4">
                 <div>
@@ -180,7 +207,7 @@
                     <input type="number" step="0.01" id="gasto-valor" required placeholder="50.00" class="w-full border-gray-300 rounded-md shadow-sm p-2 border">
                 </div>
                 <div class="pt-4 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModal('modal-gasto')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
+                    <button type="button" onclick="fecharModalGasto()" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
                         <span id="btn-gasto-text">Salvar Gasto</span>
                     </button>
@@ -194,6 +221,10 @@
         let vendasGlobais = [];
         let gastosGlobais = [];
         let chartEvolucao, chartProdutos, chartGastos;
+        
+        // Variáveis para controle de edição
+        let idEditandoVenda = null;
+        let idEditandoGasto = null;
 
         // Utilitário de Moeda Brasileira
         const formatBRL = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
@@ -207,17 +238,34 @@
             const vendasSalvas = localStorage.getItem('cookies_vendas');
             const gastosSalvos = localStorage.getItem('cookies_gastos');
 
-            if (vendasSalvas) {
-                vendasGlobais = JSON.parse(vendasSalvas);
-            }
-            if (gastosSalvos) {
-                gastosGlobais = JSON.parse(gastosSalvos);
-            }
+            if (vendasSalvas) vendasGlobais = JSON.parse(vendasSalvas);
+            if (gastosSalvos) gastosGlobais = JSON.parse(gastosSalvos);
 
             atualizarDashboard();
         }
 
-        // 2. Funções de Adicionar e Salvar Dados
+        // 2. Lógica de Abas do Histórico
+        window.switchTab = function(tab) {
+            const btnVendas = document.getElementById('tab-vendas');
+            const btnGastos = document.getElementById('tab-gastos');
+            const tableVendas = document.getElementById('table-vendas');
+            const tableGastos = document.getElementById('table-gastos');
+
+            if (tab === 'vendas') {
+                btnVendas.className = 'px-3 py-1 text-sm font-medium rounded-md bg-white shadow-sm text-blue-700';
+                btnGastos.className = 'px-3 py-1 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700';
+                tableVendas.classList.remove('hidden');
+                tableGastos.classList.add('hidden');
+            } else {
+                btnGastos.className = 'px-3 py-1 text-sm font-medium rounded-md bg-white shadow-sm text-red-700';
+                btnVendas.className = 'px-3 py-1 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700';
+                tableGastos.classList.remove('hidden');
+                tableVendas.classList.add('hidden');
+            }
+            renderizarTabelasHistorico();
+        }
+
+        // 3. Funções de Adicionar e Atualizar Dados
         document.getElementById('form-venda').addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -228,7 +276,7 @@
             const total = qtd * preco;
 
             const novaVenda = {
-                id: Date.now().toString(),
+                id: idEditandoVenda ? idEditandoVenda : Date.now().toString(),
                 data: data,
                 produto: produto,
                 quantidade: qtd,
@@ -236,14 +284,16 @@
                 total: total
             };
 
-            vendasGlobais.push(novaVenda);
-            localStorage.setItem('cookies_vendas', JSON.stringify(vendasGlobais)); // Salva no navegador
-            
+            if (idEditandoVenda) {
+                const index = vendasGlobais.findIndex(v => v.id === idEditandoVenda);
+                if (index !== -1) vendasGlobais[index] = novaVenda;
+            } else {
+                vendasGlobais.push(novaVenda);
+            }
+
+            localStorage.setItem('cookies_vendas', JSON.stringify(vendasGlobais));
             atualizarDashboard();
-            closeModal('modal-venda');
-            
-            document.getElementById('form-venda').reset();
-            document.getElementById('venda-data').valueAsDate = new Date();
+            fecharModalVenda();
         });
 
         document.getElementById('form-gasto').addEventListener('submit', (e) => {
@@ -254,23 +304,95 @@
             const valor = Number(document.getElementById('gasto-valor').value);
 
             const novoGasto = {
-                id: Date.now().toString(),
+                id: idEditandoGasto ? idEditandoGasto : Date.now().toString(),
                 data: data,
                 categoria: categoria,
                 valor: valor
             };
 
-            gastosGlobais.push(novoGasto);
-            localStorage.setItem('cookies_gastos', JSON.stringify(gastosGlobais)); // Salva no navegador
-            
+            if (idEditandoGasto) {
+                const index = gastosGlobais.findIndex(g => g.id === idEditandoGasto);
+                if (index !== -1) gastosGlobais[index] = novoGasto;
+            } else {
+                gastosGlobais.push(novoGasto);
+            }
+
+            localStorage.setItem('cookies_gastos', JSON.stringify(gastosGlobais));
             atualizarDashboard();
-            closeModal('modal-gasto');
-            
-            document.getElementById('form-gasto').reset();
-            document.getElementById('gasto-data').valueAsDate = new Date();
+            fecharModalGasto();
         });
 
-        // 3. Lógica de Atualização Visual (Dashboard e Gráficos)
+        // 4. Lógica de Apagar e Editar
+        window.apagarVenda = function(id) {
+            if(confirm('Tem certeza que deseja apagar este registro de venda?')) {
+                vendasGlobais = vendasGlobais.filter(v => v.id !== id);
+                localStorage.setItem('cookies_vendas', JSON.stringify(vendasGlobais));
+                atualizarDashboard();
+            }
+        }
+
+        window.editarVenda = function(id) {
+            const venda = vendasGlobais.find(v => v.id === id);
+            if(!venda) return;
+            
+            idEditandoVenda = id;
+            document.getElementById('venda-data').value = venda.data;
+            document.getElementById('venda-produto').value = venda.produto;
+            document.getElementById('venda-qtd').value = venda.quantidade;
+            document.getElementById('venda-preco').value = venda.precoUnitario;
+            
+            document.getElementById('btn-venda-text').textContent = "Atualizar Venda";
+            document.getElementById('modal-venda-title').textContent = "Editar Venda";
+            
+            openModal('modal-venda');
+        }
+
+        window.apagarGasto = function(id) {
+            if(confirm('Tem certeza que deseja apagar este registro de gasto?')) {
+                gastosGlobais = gastosGlobais.filter(g => g.id !== id);
+                localStorage.setItem('cookies_gastos', JSON.stringify(gastosGlobais));
+                atualizarDashboard();
+            }
+        }
+
+        window.editarGasto = function(id) {
+            const gasto = gastosGlobais.find(g => g.id === id);
+            if(!gasto) return;
+            
+            idEditandoGasto = id;
+            document.getElementById('gasto-data').value = gasto.data;
+            document.getElementById('gasto-categoria').value = gasto.categoria;
+            document.getElementById('gasto-valor').value = gasto.valor;
+            
+            document.getElementById('btn-gasto-text').textContent = "Atualizar Gasto";
+            document.getElementById('modal-gasto-title').textContent = "Editar Gasto";
+            
+            openModal('modal-gasto');
+        }
+
+        // 5. Funções Auxiliares de Modal
+        window.openModal = function(id) { document.getElementById(id).classList.add('active'); }
+        window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); }
+
+        window.fecharModalVenda = function() {
+            closeModal('modal-venda');
+            idEditandoVenda = null;
+            document.getElementById('form-venda').reset();
+            document.getElementById('venda-data').valueAsDate = new Date();
+            document.getElementById('btn-venda-text').textContent = "Salvar Venda";
+            document.getElementById('modal-venda-title').textContent = "Registrar Nova Venda";
+        }
+
+        window.fecharModalGasto = function() {
+            closeModal('modal-gasto');
+            idEditandoGasto = null;
+            document.getElementById('form-gasto').reset();
+            document.getElementById('gasto-data').valueAsDate = new Date();
+            document.getElementById('btn-gasto-text').textContent = "Salvar Gasto";
+            document.getElementById('modal-gasto-title').textContent = "Registrar Gasto";
+        }
+
+        // 6. Lógica de Atualização Visual (Dashboard e Gráficos)
         function atualizarDashboard() {
             const faturamentoTotal = vendasGlobais.reduce((acc, v) => acc + (v.total || 0), 0);
             const gastosTotais = gastosGlobais.reduce((acc, g) => acc + (g.valor || 0), 0);
@@ -287,7 +409,7 @@
             renderizarGraficoEvolucao();
             renderizarGraficoProdutos();
             renderizarGraficoGastos();
-            renderizarTabelaVendas();
+            renderizarTabelasHistorico();
         }
 
         function agruparPorData() {
@@ -301,13 +423,11 @@
                 datasMap[g.data].gastos += g.valor;
             });
             
-            // Ordenar por data
             const datasOrdenadas = Object.keys(datasMap).sort();
-            // Pegar as últimas 7 para não poluir
             const ultimas = datasOrdenadas.slice(-7);
             
             return {
-                labels: ultimas.map(d => d.split('-').reverse().slice(0,2).join('/')), // Formato DD/MM
+                labels: ultimas.map(d => d.split('-').reverse().slice(0,2).join('/')),
                 faturamentos: ultimas.map(d => datasMap[d].faturamento),
                 gastos: ultimas.map(d => datasMap[d].gastos)
             };
@@ -391,35 +511,59 @@
             });
         }
 
-        function renderizarTabelaVendas() {
-            const tbody = document.getElementById('table-vendas-body');
+        function renderizarTabelasHistorico() {
+            const tbodyVendas = document.getElementById('table-vendas-body');
+            const tbodyGastos = document.getElementById('table-gastos-body');
             const emptyState = document.getElementById('table-empty');
-            tbody.innerHTML = '';
-
-            if (vendasGlobais.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
-            }
+            
+            tbodyVendas.innerHTML = '';
+            tbodyGastos.innerHTML = '';
             emptyState.classList.add('hidden');
 
-            // Ordenar por data decrescente
-            const vendasOrdenadas = [...vendasGlobais].sort((a, b) => new Date(b.data) - new Date(a.data));
-            
-            vendasOrdenadas.slice(0, 8).forEach(venda => {
-                const tr = document.createElement('tr');
-                const dataFormatada = venda.data.split('-').reverse().join('/');
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${dataFormatada}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${venda.produto} <span class="text-xs text-gray-400">(${venda.quantidade}x)</span></td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">${formatBRL(venda.total)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+            const isVendasActive = !document.getElementById('table-vendas').classList.contains('hidden');
 
-        // Expor funções de modal para o escopo global (para o onClick do HTML funcionar)
-        window.openModal = function(id) { document.getElementById(id).classList.add('active'); }
-        window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); }
+            if (isVendasActive) {
+                if (vendasGlobais.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                const vendasOrdenadas = [...vendasGlobais].sort((a, b) => new Date(b.data) - new Date(a.data));
+                vendasOrdenadas.forEach(venda => {
+                    const tr = document.createElement('tr');
+                    const dataFormatada = venda.data.split('-').reverse().join('/');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${dataFormatada}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${venda.produto} <span class="text-xs text-gray-400">(${venda.quantidade}x)</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">${formatBRL(venda.total)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+                            <button onclick="editarVenda('${venda.id}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button onclick="apagarVenda('${venda.id}')" class="text-red-500 hover:text-red-700" title="Apagar"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbodyVendas.appendChild(tr);
+                });
+            } else {
+                if (gastosGlobais.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                const gastosOrdenados = [...gastosGlobais].sort((a, b) => new Date(b.data) - new Date(a.data));
+                gastosOrdenados.forEach(gasto => {
+                    const tr = document.createElement('tr');
+                    const dataFormatada = gasto.data.split('-').reverse().join('/');
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${dataFormatada}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${gasto.categoria}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-red-600">${formatBRL(gasto.valor)}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+                            <button onclick="editarGasto('${gasto.id}')" class="text-blue-500 hover:text-blue-700 mr-3" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button onclick="apagarGasto('${gasto.id}')" class="text-red-500 hover:text-red-700" title="Apagar"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbodyGastos.appendChild(tr);
+                });
+            }
+        }
 
         // Inicia carregando os dados salvos
         carregarDados();
